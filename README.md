@@ -22,8 +22,6 @@ Para cumplimentar el objetivo trazado se divide el proyecto en 4 fases con una s
 -  **Otros servicios de AWS como VPC y IAM** → Para garantizar la funcionalidad y la seguridad de la arquitectura.
 -  **Matplotlib** → Para visualización de resultados.  
 
-📂 **Código fuente:** [Repositorio en GitHub](https://github.com/tu-usuario/flask-gurobi-pl)  
-
 ---
 
 # **Fase 1: Configurar una instancia EC2 en AWS**  
@@ -157,7 +155,6 @@ Este proyecto permite a principiantes en **Cloud Computing** experimentar con lo
 - Desplegar Flask con **Docker** y **AWS ECS**.  
 - Mejorar la visualización con **Dash o Streamlit**.  
 
-📂 **Código fuente:** [Repositorio en GitHub](https://github.com/tu-usuario/flask-gurobi-pl)  
 📄 **Referencia científica:** [Artículo en Dialnet](https://dialnet.unirioja.es/servlet/articulo?codigo=9472260).  
 
 **¡Dime qué te pareció y si quieres colaborar!** 😃

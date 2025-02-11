@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario de Datos</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { width: 80%; margin: auto; background: white; padding: 20px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid black; padding: 10px; text-align: center; }
+        th { background-color: #007bff; color: white; }
+        input { width: 100px; padding: 5px; text-align: center; }
+        .btn {display: inline-block; padding: 12px 20px; font-size: 16px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; margin: 10px;            }
+
+.btn:hover {
+    background-color: #0056b3;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Formulario de Datos</h2>
+
+        <form action="/upload" method="post">
+            <label for="dataset_id"><strong>Identificador único:</strong></label>
+            <input type="text" name="dataset_id" value="{{ request.args.get('dataset_id', '') }}" {% if readonly %}readonly{% endif %} required>
+            <br><br>
+
+            <h3>Utilidad Marginal</h3>
+            <table>
+                <tr><th>Producto</th><th>Valor</th></tr>
+                {% for producto, valor in data.utilidad_marginal.items() %}
+                <tr>
+                    <td>{{ producto }}</td>
+                    <td><input type="number" step="any" name="utilidad_marginal_{{ producto }}" value="{{ valor }}" {% if readonly %}readonly{% endif %}></td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h3>Disponibilidad de Materia Prima</h3>
+            <table>
+                <tr><th>Materia Prima</th><th>Cantidad</th></tr>
+                {% for materia, cantidad in data.disp_mat_prima.items() %}
+                <tr>
+                    <td>{{ materia }}</td>
+                    <td><input type="number" step="any" name="disp_mat_prima_{{ materia }}" value="{{ cantidad }}" {% if readonly %}readonly{% endif %}></td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <br>
+            {% if not readonly %}
+            <button type="submit" class="btn">Guardar y Resolver</button>
+            {% endif %}
+        </form>
+
+        <hr>
+
+        <h2>Casos Guardados</h2>
+        {% if casos %}
+        <ul>
+            {% for caso in casos %}
+            <li><a href="{{ url_for('cargar', dataset_id=caso) }}" class="btn">{{ caso }}</a></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No hay casos guardados.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

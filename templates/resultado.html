@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados del Modelo</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { width: 80%; margin: auto; background: white; padding: 20px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid black; padding: 10px; text-align: center; }
+        th { background-color: #28a745; color: white; }
+        img { width: 70%; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 10px; }
+        .btn:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Resultados de la Optimización</h2>
+        
+        <h3>Valor Óptimo de la Función Objetivo</h3>
+        <p><strong>Utilidad Máxima:</strong> {{ resultado.objetivo }}</p>
+
+        <h3>Producción Óptima por Producto</h3>
+        <table>
+            <tr><th>Producto</th><th>Cantidad Óptima</th></tr>
+            {% for producto, cantidad in resultado.produccion_optima.items() %}
+            <tr>
+                <td>{{ producto }}</td>
+                <td>{{ cantidad }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Gráfico de Producción Óptima</h3>
+        <img src="data:image/png;base64,{{ grafico }}" alt="Gráfico de producción óptima">
+
+        <br>
+        <a href="/" class="btn">Volver al formulario</a>
+        <a href="/" class="btn">Ver otros casos</a>
+    </div>
+</body>
+</html>

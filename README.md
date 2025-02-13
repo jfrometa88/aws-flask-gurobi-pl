@@ -2,7 +2,7 @@
 **Proyecto Beginner en Cloud Computing con AWS**  
 
 ## Introducción  
-Este proyecto es parte de una ruta de aprendizaje con enfoque práctico de servicios de **AWS**, diseñado para principiantes en **Cloud Computing**. El mismo se concibió y probó en un Sandbox de **AWS** diseñado para el aprendizaje y por tanto con restricciones en su uso. Su objetivo es proporcionar una experiencia práctica en el uso de servicios de Cloud Computing como **AWS EC2, S3 y otros servicios asociados como VPC, IAM**, combinando estos con una implmentación de una aplicación web usando **Python** con **Python SDK para AWS, Gurobi, Matplotlib y Flask** para resolver un modelo de **optimización matemática** basado en un caso de estudio real.  
+Este proyecto es parte de una ruta de aprendizaje con enfoque práctico de servicios de **Amazon Web Service (AWS)**, diseñado para principiantes en **Cloud Computing**. El mismo se concibió y probó en un Sandbox de **AWS** diseñado para el aprendizaje y por tanto con restricciones en su uso. Su objetivo es proporcionar una experiencia práctica en el uso de **AWS Management Console y AWS Command Line Interface (CLI)**, con servicios de Cloud Computing como **AWS EC2, S3 y otros servicios asociados como VPC, IAM**. Combinando estos con una implmentación de una aplicación web usando **Python** con **Python SDK para AWS, Gurobi, Matplotlib y Flask** para introducir datos, resolver y acceder a los resultados de un modelo de **optimización matemática de programación lineal** basado en un caso de estudio real (accediendo vía web por Internet).  
 
 **Referencia científica:**  
 El modelo matemático está basado en la publicación:  
@@ -15,6 +15,8 @@ Para cumplimentar el objetivo trazado se divide el proyecto en 4 fases con una s
 ![Arquitectura](docs/Arch_AWS.png)
 
 🛠️ **Tecnologías utilizadas:**  
+-  **AWS Management Console** → Para configurar la arquitectura en la nube.
+-  **AWS CLI** → Para configurar la arquitectura en la nube programáticamente.
 -  **AWS EC2** → Para implementar servidor que despliegue la aplicación web.
 -  **Flask** → Para la interfaz web.
 -  **Gurobi** → Para la optimización matemática.
@@ -22,44 +24,143 @@ Para cumplimentar el objetivo trazado se divide el proyecto en 4 fases con una s
 -  **Otros servicios de AWS como VPC y IAM** → Para garantizar la funcionalidad y la seguridad de la arquitectura.
 -  **Matplotlib** → Para visualización de resultados.  
 
+📂 **Código fuente:** [Repositorio en GitHub](https://github.com/jorgef88/aws-flask-gurobi-pl)  
+
 ---
 
 # **Fase 1: Configurar una instancia EC2 en AWS**  
 **Objetivo:** Tener una instancia EC2 lista para ejecutar Flask, Matplotlib, Gurobi y conectar con S3.  
 
 ### **Pasos a seguir:**  
-- **Crear la VPC y la infraestructura de red**.  
--- Subnet pública, tabla de enrutamiento, Internet Gateway.  
--- ACL y Grupo de Seguridad con permisos **SSH** (para acceder al command line de la instancia), **HTTP y HTTPS** (para permitir que la instancia descargue archivos necesarios desde Internet) y **TCP en puerto 5000** (para poder acceder al servidor Flask una vez en funcionamiento).  
--- IAM Role con permisos restringidos de acceso a S3.  
-
-- **Configurar la instancia EC2:**  
--- **AMI:** Amazon Linux 2  
--- **Tipo:** `t2.micro` (capa gratuita)  
--- **Almacenamiento:** 8 GiB, gp3, 3000 IOPS  
--- **Acceso:** Llaves SSH y asociación con la subnet pública  
-
-- **Ejecutar el script en la instancia: `scripts/setup_ec2.sh`**.
-
-El script permite instalar los módulos necesarios para la ejecución del proyecto, tales como **Flask, Python SDK para AWS, Gurobipy y Matplotlib**. También permite configurar la licencia de **Gurobi** para el uso del solver por parte de gurobipy.
-
-Fragmento de ejemplo del código:
-
+1. **Configurar credenciales de AWS para poder desplegar la arquitectura:**
 ```bash
+aws configure
+```
+2. **Crear la VPC y la infraestructura de red necesaria**.  
+- Subnet pública, tabla de enrutamiento, Internet Gateway y ACL con permisos de acceso a la red necesarios.  
+- Grupo de Seguridad con permisos **SSH** (para acceder al command line de la instancia), **HTTP y HTTPS** (para permitir que la instancia descargue archivos necesarios desde Internet) y **TCP en puerto 5000** (para poder acceder al servidor Flask una vez en funcionamiento).
+El código para implementar este paso mediante **AWS CLI** se encuentras en `scripts/create_sec_group.sh` y se muestra a continuación:
+```bash
+# Variables necesarias
+SUBNET_ID="subnet-xxxxxxxx"  # Reemplaza con el ID de la Subnet pública
+SECURITY_GROUP_NAME="FlaskSecurityGroup"
+
+# Crear el grupo de seguridad
+group_id=$(aws ec2 create-security-group \
+  --group-name "$SECURITY_GROUP_NAME" \
+  --description "Security group for Flask server that allows connections SSH, HTTP, HTTPS y TCP in port 5000 " \
+  --vpc-id $(aws ec2 describe-subnets --subnet-ids $SUBNET_ID --query "Subnets[0].VpcId" --output text) \
+  --query 'GroupId' --output text)
+
+echo "Security Group creado con ID: $group_id"
+
+# Agregar reglas de entrada al grupo de seguridad
+aws ec2 authorize-security-group-ingress --group-id $group_id --protocol tcp --port 22 --cidr 0.0.0.0/0 #para permitir conexión SSH y acceder al command line de la instancia
+aws ec2 authorize-security-group-ingress --group-id $group_id --protocol tcp --port 80 --cidr 0.0.0.0/0 #para permitir conexión HTTP desde internet necesaria para configuración
+aws ec2 authorize-security-group-ingress --group-id $group_id --protocol tcp --port 443 --cidr 0.0.0.0/0 #para permitir conexión HTTPS desde internet necesaria para configuración
+aws ec2 authorize-security-group-ingress --group-id $group_id --protocol tcp --port 5000 --cidr 0.0.0.0/0 #para permitir conexión al servidor Flask desde internet
+
+echo "Reglas de seguridad agregadas al Security Group."
+```
+
+- IAM Role con permisos restringidos de acceso a S3.  
+El código para implementar este paso mediante **AWS CLI** se encuentras en `scripts/create_role.sh` y se muestra a continuación:
+``` bash
+# Variables
+ROLE_NAME="S3FullAccessRole"
+POLICY_NAME="S3FullAccessPolicy"
+BUCKET_NAME="flask-pl-bucket"  
+
+# Crear el rol IAM con permisos para EC2
+aws iam create-role --role-name $ROLE_NAME --assume-role-policy-document '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "ec2.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}'
+
+echo "Rol IAM $ROLE_NAME creado."
+
+# Crear una política de permisos para acceso completo al bucket S3 específico
+aws iam create-policy --policy-name $POLICY_NAME --policy-document "{
+  \"Version\": \"2012-10-17\",
+  \"Statement\": [
+    {
+      \"Effect\": \"Allow\",
+      \"Action\": \"s3:*\", 
+      \"Resource\": [
+        \"arn:aws:s3:::$BUCKET_NAME\",
+        \"arn:aws:s3:::$BUCKET_NAME/*\"
+      ]
+    }
+  ]
+}"
+
+echo "Política $POLICY_NAME creada."
+
+# Obtener el ARN de la política
+POLICY_ARN=$(aws iam list-policies --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
+
+# Asociar la política al rol
+aws iam attach-role-policy --role-name $ROLE_NAME --policy-arn $POLICY_ARN
+
+echo "Política $POLICY_NAME adjuntada al rol $ROLE_NAME."
+```
+
+3. **Configurar la instancia EC2:**  
+- **AMI:** Amazon Linux 2  
+- **Tipo:** `t2.micro` (capa gratuita)  
+- **Almacenamiento:** 8 GiB, gp3, 3000 IOPS  
+- **Acceso:** Llaves SSH y asociación con la subnet pública  
+El código para implementar este paso mediante **AWS CLI** se encuentras en `scripts/create_role.sh` y se muestra a continuación:
+```bash
+INSTANCE_NAME="FlaskEC2Instance"
+ROLE_NAME="S3FullAccessRole" 
+AMI_ID="ami-000089c8d02060104"  # Amazon Linux 2 AMI ID en la región us-west-2
+INSTANCE_TYPE="t2.micro"
+VOLUME_SIZE=8
+VOLUME_TYPE="gp3"
+IOPS=3000
+
+# Crear la instancia EC2
+instance_id=$(aws ec2 run-instances \
+  --image-id $AMI_ID \
+  --instance-type $INSTANCE_TYPE \
+  --subnet-id $SUBNET_ID \
+  --security-group-ids $group_id \
+  --iam-instance-profile Name=$ROLE_NAME \
+  --block-device-mappings "DeviceName=/dev/xvda,Ebs={VolumeSize=$VOLUME_SIZE,VolumeType=$VOLUME_TYPE,Iops=$IOPS}" \
+  --user-data file://<(cat <<EOF
 #!/bin/bash
 sudo yum update -y
 sudo yum install -y aws-cli python3-pip
 pip3 install flask boto3 gurobipy matplotlib
+EOF
+) \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value='$INSTANCE_NAME'}]' \
+  --query 'Instances[0].InstanceId' --output text)
 
-grbgetkey XXXXXXXX-XXXXXXXX-XXXXXXXX
+echo "Instancia EC2 creada con ID: $instance_id"
 ```
+- **Ejecutar el script en la instancia: `scripts/setup_ec2.sh`**.
+El script permite instalar los módulos necesarios para la ejecución del proyecto, tales como **Flask, Python SDK para AWS, Gurobipy y Matplotlib**. También permite configurar la licencia de **Gurobi** para el uso del solver por parte de gurobipy.
+``` bash
+# Descargar y configurar Gurobi (Solo si se tiene una licencia)
+cd /home/ec2-user
+wget https://packages.gurobi.com/10.0/gurobi10.0.1_linux64.tar.gz
+tar -xvzf gurobi10.0.1_linux64.tar.gz
+sudo mv gurobi10.0.1_linux64 /opt/gurobi
+echo "export GUROBI_HOME=\"/opt/gurobi\"" >> ~/.bashrc
+echo "export PATH=\"\$GUROBI_HOME/bin:\$PATH\"" >> ~/.bashrc
+echo "export LD_LIBRARY_PATH=\"\$GUROBI_HOME/lib:\$LD_LIBRARY_PATH\"" >> ~/.bashrc
+source ~/.bashrc
 
-- **Configurar credenciales de AWS:**
-
-Fragmento de ejemplo del código:
-
-```bash
-aws configure
+# Configurar la licencia de Gurobi (Sustituye XXXXX por la clave)
+grbgetkey XXXXXXXX-XXXXXXXX-XXXXXXXX
 ```
 
 ---
@@ -67,11 +168,22 @@ aws configure
 # **Fase 2: Configurar un Bucket S3 en AWS**  
 **Objetivo:** Crear un bucket S3 con permisos adecuados.  
 
-- Crear un bucket con carpetas:  
--- `/input/` → Almacena datos ingresados.  
---`/output/` → Almacena resultados del modelo.
+1. Crear un bucket con carpetas:  
+- `/input/` → Almacena datos ingresados.  
+-`/output/` → Almacena resultados del modelo.
+El código para implementar este paso mediante **AWS CLI** se encuentras en `scripts/create_bucket_s3.sh` y se muestra a continuación:
+```bash
+BUCKET_NAME="flask-pl-bucket"
+aws s3api create-bucket --bucket $BUCKET_NAME --region us-west-2 --create-bucket-configuration LocationConstraint=us-west-2
+echo "Bucket S3 creado: $BUCKET_NAME"
 
-- **Configuración en la aplicación web de Flask `app.py`**
+# Crear carpetas dentro del bucket
+aws s3api put-object --bucket $BUCKET_NAME --key "input/"
+aws s3api put-object --bucket $BUCKET_NAME --key "output/"
+echo "Carpetas /input/ y /output/ creadas en el bucket $BUCKET_NAME"
+```
+
+2. **Configuración en la aplicación web de Flask `app.py`**
 
 Fragmento de ejemplo del código:
 ```python
@@ -86,7 +198,7 @@ Un ejemplo, tanto de los datos de entrada como los resultados del modelo almacen
 # **Fase 3: Implementar el modelo de optimización**  
 **Objetivo:** Diseñar el modelo de optimización con gurobipy de manera que el usuario interactúe  desde la web.  
 
-- **Definición del modelo en `modelo.py`** 
+- **Definición del modelo en `modelo.py` y `app.py`** 
 
 Fragmento de ejemplo del código:
 ```python
@@ -117,9 +229,9 @@ problema.optimize()
 
 # **Fase 4: Integración de los datos de entrada, la resolución del modelo y los resultados del mismo en una aplicación web con Flask**
 Se desarrolló una aplicaci en **Flask** donde los usuarios pueden:  
-- **Ingresar datos en un formulario web** (ver templates/form.html).  
-- **Resolver el modelo con un clic.**  
-- **Visualizar los resultados incluyendo gráfico**(ver templates/resultado.html)  
+- **Ingresar datos en un formulario web** (ver `templates/form.html`).  
+- **Resolver el modelo con un clic** (ver `templates/form.html`)
+- **Visualizar los resultados incluyendo gráfico**(ver `templates/resultado.html`)  
 
 **Ejemplo de código en `app.py`**
 ```python
@@ -155,6 +267,7 @@ Este proyecto permite a principiantes en **Cloud Computing** experimentar con lo
 - Desplegar Flask con **Docker** y **AWS ECS**.  
 - Mejorar la visualización con **Dash o Streamlit**.  
 
+📂 **Código fuente:** [Repositorio en GitHub](https://github.com/tu-usuario/flask-gurobi-pl)  
 📄 **Referencia científica:** [Artículo en Dialnet](https://dialnet.unirioja.es/servlet/articulo?codigo=9472260).  
 
 **¡Dime qué te pareció y si quieres colaborar!** 😃

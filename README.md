@@ -267,7 +267,4 @@ Este proyecto permite a principiantes en **Cloud Computing** experimentar con lo
 - Desplegar Flask con **Docker** y **AWS ECS**.  
 - Mejorar la visualización con **Dash o Streamlit**.  
 
-📂 **Código fuente:** [Repositorio en GitHub](https://github.com/tu-usuario/flask-gurobi-pl)  
-📄 **Referencia científica:** [Artículo en Dialnet](https://dialnet.unirioja.es/servlet/articulo?codigo=9472260).  
-
 **¡Dime qué te pareció y si quieres colaborar!** 😃

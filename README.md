@@ -1,7 +1,8 @@
-# Optimización de Producción con programación lineal usando Python, Flask, Gurobi, matplotlib y AWS  
+# Optimización de Producción con programación lineal usando AWS, Python, Flask, Gurobi y Matplotlib    
 **Proyecto Beginner en Cloud Computing con AWS**  
 
 ## Introducción  
+¿Quieres aprender a implementar una aplicación en la nube con **AWS** y resolver modelos de optimización matemática con **Python y Gurobi**? En este proyecto aprenderás a desplegar una infraestructura en AWS desde cero, integrando **EC2, S3 y Flask** en un caso de estudio real.
 Este proyecto es parte de una ruta de aprendizaje con enfoque práctico de servicios de **Amazon Web Service (AWS)**, diseñado para principiantes en **Cloud Computing**. El mismo se concibió y probó en un Sandbox de **AWS** diseñado para el aprendizaje y por tanto con restricciones en su uso. Su objetivo es proporcionar una experiencia práctica en el uso de **AWS Management Console y AWS Command Line Interface (CLI)**, con servicios de Cloud Computing como **AWS EC2, S3 y otros servicios asociados como VPC, IAM**. Combinando estos con una implmentación de una aplicación web usando **Python** con **Python SDK para AWS, Gurobi, Matplotlib y Flask** para introducir datos, resolver y acceder a los resultados de un modelo de **optimización matemática de programación lineal** basado en un caso de estudio real (accediendo vía web por Internet).  
 
 **Referencia científica:**  
@@ -37,7 +38,7 @@ Para cumplimentar el objetivo trazado se divide el proyecto en 4 fases con una s
 aws configure
 ```
 2. **Crear la VPC y la infraestructura de red necesaria**.  
-- Subnet pública, tabla de enrutamiento, Internet Gateway y ACL con permisos de acceso a la red necesarios.  
+- Subnet pública, tabla de enrutamiento, Internet Gateway y ACL con permisos de acceso a la red necesarios (En el entorno del Sandbox de AWS se trabajó, la VPC, la subnet pública y los permisos ACL ya están preconfigurados, por lo que no es necesario crearlas manualmente=..  
 - Grupo de Seguridad con permisos **SSH** (para acceder al command line de la instancia), **HTTP y HTTPS** (para permitir que la instancia descargue archivos necesarios desde Internet) y **TCP en puerto 5000** (para poder acceder al servidor Flask una vez en funcionamiento).
 El código para implementar este paso mediante **AWS CLI** se encuentras en `scripts/create_sec_group.sh` y se muestra a continuación:
 ```bash
@@ -246,6 +247,19 @@ def resolver(dataset_id):
 
     return render_template('resultado.html', resultado=resultado, grafico=grafico_barras(resultado))
 ```
+---
+# **Cómo ejecutar la aplicación en EC2**
+1. **Conéctate a la instancia EC2:**  
+   - Usa SSH con la clave `tu-clave.pem`.
+2. **Ubicación del código:**  
+   - Subir o crear la aplicación `app.py` y la carpeta `templates` con las plantillas html a `/home/ec2-user/`.
+3. **Ejecutar la aplicación:**  
+   - Dentro de `/home/ec2-user/`, ejecutar:
+     ```bash
+     python3 app.py
+     ```
+4. **Abrir en el navegador:**  
+   - `http://TU-IP-PUBLICA:5000/`
 Un ejemplo del formulario web para los datos de entrada en la aplicación web de Flask corriendo en el servidor se puede visualizar en las siguientes imágenes:
 
 ![form1](docs/capturas_AWS/form1.png)
@@ -259,7 +273,7 @@ Un ejemplo la visualización de los resultados del modelo en la aplicación web 
 ---
 
 # 🎯 **Conclusión**
-Este proyecto permite a principiantes en **Cloud Computing** experimentar con los servicios de **AWS** en un entorno práctico, combinando optimización matemática con Gurobi y programación web con Python.  
+Este proyecto permite a principiantes en **Cloud Computing** experimentar con los servicios de **AWS** en un entorno práctico, combinando optimización matemática con Gurobi y programación web con Python. Aunque, tanto Flask como Gurobi se usan con fines educativos y no están optimizados para producción.
 
 **Posibles mejoras:**  
 - Implementar autenticación con AWS Cognito.  
